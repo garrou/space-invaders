@@ -1,9 +1,3 @@
-/**
- * TODO: 
- * Player death
- * Bonus
- * Boss
- */
 const canvas = document.querySelector("canvas");
 const ctx = canvas.getContext("2d");
 const scoreText = document.querySelector("p");
@@ -45,14 +39,26 @@ class Spaceship {
 	update = () => {
 		/* right */
 		if ((this.x + this.image.width) >= width) {
-			this.velX = -(this.velX);
+			this.velX *= -1;
 		}
 		/* left */
 		if ((this.x) <= 0) {
-			this.velX = -(this.velX);
+			this.velX *= -1;
 		}
 
 		this.x += this.velX;
+	}
+
+	/**
+	 * Spaceship can shoot
+	 */
+	shoot = (lasersArray) => {
+		let laser = new Laser(this.x + this.image.width, 
+							this.y, 
+							2, 
+							"images/laser-" + this.color + ".png");
+		laser.play();
+		lasersArray.push(laser);
 	}
 
 	/**
@@ -79,18 +85,6 @@ class Enemy extends Spaceship {
 		super(x, y, velX, color);
 		this.image.src = "images/enemy-" + this.color + "-" + Utils.random(1, 5) + ".png";
 	}
-
-	/**
-	 * Enemy can shoot
-	 */
-	shoot = () => {
-		let laser = new Laser(this.x + this.image.width / 2, 
-							this.y + this.image.height, 
-							2, 
-							"images/laser-" + this.color + ".png");
-		laser.play();
-		enemiesLasers.push(laser);
-	}
 }
 
 /**
@@ -107,8 +101,6 @@ class Player extends Spaceship {
 	 */
 	constructor(x, y, velX, color) {
 		super(x, y, velX, color);
-		this.fire = true;
-		this.nbMoves = 1;
 		this.alive = true;
 		this.image.src = "images/player-" + this.color + "-" + Utils.random(1, 3) + ".png";
 	}
@@ -132,43 +124,30 @@ class Player extends Spaceship {
 	 */
 	setControls = () => {
 		window.onkeydown = (e) => {
-			if (e.key === "ArrowLeft") {
-				this.x = -(this.x);
-				this.nbMoves++;
-			} else if (e.key === "ArrowRight") {
-				this.x = -(this.x);
-				this.nbMoves++;
+			if (e.key === "ArrowLeft" && this.velX > 0) {
+				this.x *= -1;
+			} else if (e.key === "ArrowRight" && this.velX < 0) {
+				this.x *= -1;
 			} else if (e.key === ' ') {
-				this.shoot();
+				this.shoot(playerLasers);
 			}
 		};
 	}
 
 	/**
-	 * Player can shoot
+	 * Check if player spaceship hit an enemy spaceship
+	 * @param {*} enemySpaceship spaceship to check
 	 */
-	shoot = () => {
-		if (this.fire) {
-			let laser = new Laser(this.x + this.image.width / 2, 
-								this.y - this.image.height / 2, 
-								10, 
-								"images/laser-" + this.color + ".png");
-			laser.play();
-			playerLasers.push(laser);
-			this.fire = false;
-			this.nbMoves++;
-		} else {
-			setTimeout(() => {
-				this.fire = true;
-			}, 10);
-		}
-	}
+	hitObject(enemySpaceship) {
+		let dx = this.x - enemySpaceship.x;
+		let dy = this.y - enemySpaceship.y;
+		let distance = Math.sqrt(dx * dx + dy * dy);
+		let isHit = false;
 
-	/**
-	 * Reset the number of player moves
-	 */
-	resetMoves = () => {
-		this.nbMoves = 1;
+		if (distance < this.image.height / 2 + enemySpaceship.image.height / 2) {
+			isHit = true;
+		}
+		return isHit;
 	}
 }
 
@@ -349,9 +328,10 @@ class Utils {
 
 		for (let i = 0; i < nbEnemies; i++) {
 			enemies.push(new Enemy(Utils.random(50, innerWidth - 100),
-				startY,
-				Utils.random(1, 10),
-				ENEMIES_COLORS[Utils.random(0, ENEMIES_COLORS.length)]));
+									startY,
+									Utils.random(1, 10),
+									ENEMIES_COLORS[Utils.random(0, ENEMIES_COLORS.length)]));
+
 			if (enemies.length % 4 == 0) {
 				startY += 150;
 			}
@@ -360,9 +340,62 @@ class Utils {
 	}
 }
 
+/**
+ * Mother class bonus
+ * Give bonus to player
+ */
+class Bonus {
+
+	/**
+	 * Init a bonus
+	 */
+	constructor(x, y) {
+		this.x = x;
+		this.y = y;
+		this.image = new Image();
+	}
+
+	/**
+	 * Draw bonus
+	 */
+	draw() {
+		ctx.drawImage(this.image, this.x, this.y);
+	}
+
+	/** 
+	 * Update bonus position
+	 */
+	update() {
+		this.y += 1;
+	}
+}
+
+/**
+ * Represent a nuclear bomb bonus
+ */
+class NuclearBomb extends Bonus {
+	
+	/**
+	 * Init a nuclear bomb
+	 */
+	constructor(x, y) {
+		super(x, y);
+		this.image.src = "images/nuclear-bomb.png";
+	}
+}
+
+/**
+ * Represent the current game 
+ */
 class Game {
 
+	/**
+	 * Loop game
+	 */
 	static play = () => {
+
+		let randBonus = Utils.random(0, 10000);
+		let randomValue = Utils.random(0, 500);
 
 		ctx.fillStyle = 'black';
 		ctx.fillRect(0, 0, width, height);
@@ -375,10 +408,6 @@ class Game {
 
 		scoreText.innerHTML = "Score : " + score;
 
-		if (enemies.length <= NB_ENEMIES / 3) {
-			down = true;
-		}
-
 		/**
 		 * Animate enemies
 		 */
@@ -386,20 +415,35 @@ class Game {
 			enemies[i].draw();
 			enemies[i].update();
 
-			if (down) {
-				enemies[i].y += 150;
+			// Check if player hit an enemy
+			if (player.hitObject(enemies[i])) {
+				player.alive = false;
+				let explosion = new Explosion(this.x, this.y);
+				explosion.draw();
+				explosion.play();
 			}
 
-			if (player.nbMoves === 5) {
-				let randomEnemy = Utils.random(0, enemies.length);
-				enemies[randomEnemy].shoot();
-				player.resetMoves();
+			// Enemies shoot
+			if (score > 0) {
+				if (randomValue >= 220 && randomValue <= 230) {
+					randomValue = Utils.random(0, enemies.length);
+					enemies[randomValue].shoot(enemiesLasers);
+				}
+			}
+			if (enemies[i].y + enemies[i].image.height >= height) {
+				player.alive = false;
 			}
 		}
 
-		if (down) {
-			down = false;
-			Utils.addEnemies(enemies, enemies.length * 2);
+		// Enemies down
+		if (score > 0) {
+			if (randomValue == 457) {
+				enemies.forEach(enemy => enemy.y += 150);
+			}
+		}
+
+		if (enemies.length <= NB_ENEMIES / 3) {
+			Utils.addEnemies(enemies, NB_ENEMIES / 3);
 		}
 
 		/**
@@ -428,6 +472,30 @@ class Game {
 			}
 		}
 
+		// add bonus
+		if (randBonus === 9874) {
+			let bonus = new NuclearBomb(Utils.random(0, width), Utils.random(0, height / 3));
+			allBonus.push(bonus);
+		}
+
+		// display bonus
+		for (let i = 0; i < allBonus.length; i++) {
+			if (allBonus[i].y > height) {
+				allBonus.splice(i, 1);
+			} else {
+				allBonus[i].draw();
+				allBonus[i].update();
+			}
+
+			// apply bonus
+			if (player.hitObject(allBonus[i])) {
+				score += enemies.length;
+				enemies = [];
+				allBonus.splice(i, 1);
+				Utils.addEnemies(enemies, NB_ENEMIES);
+			}
+		}
+
 		player.draw();
 		player.update();
 		player.checkBounds();
@@ -439,6 +507,9 @@ class Game {
 		}
 	}
 
+	/**
+	 * When player loose
+	 */
 	static loose = () => {
 		loose.textContent = "You loose ! ";
 	}
@@ -449,8 +520,8 @@ let score = 0;
 let enemies = [];
 let playerLasers = [];
 let enemiesLasers = [];
+let allBonus = [];
 let player = new Player(width / 2.2, height / 1.2, 5, "blue");
-let down = false;
 
 player.setControls();
 Utils.addEnemies(enemies, NB_ENEMIES);
