@@ -1,8 +1,15 @@
+/**
+ * TODO: 
+ * Player death
+ * Bonus
+ * Boss
+ */
 const canvas = document.querySelector("canvas");
 const ctx = canvas.getContext("2d");
 const scoreText = document.querySelector("p");
 const width = canvas.width = window.innerWidth;
 const height = canvas.height = window.innerHeight;
+const loose = document.getElementById("loose");
 
 /**
  * Available enemies colors
@@ -11,15 +18,6 @@ const ENEMIES_COLORS = [
 	"green",
 	"red"
 ];
-
-/**
- * Get random between min and max
- * @param {*} min min available number
- * @param {*} max max available number
- */
-const random = (min,max) => {
-	return num = Math.floor(Math.random()*(max-min)) + min;
-}
 
 /**
  * Mother abstract class 
@@ -44,7 +42,7 @@ class Spaceship {
 	/**
 	 * Update position
 	 */
-	update() {
+	update = () => {
 		/* right */
 		if ((this.x + this.image.width) >= width) {
 			this.velX = -(this.velX);
@@ -60,7 +58,7 @@ class Spaceship {
 	/**
 	 * Draw on canvas
 	 */
-	draw() {
+	draw = () => {
 		ctx.drawImage(this.image, this.x, this.y);
 	}
 }
@@ -79,14 +77,17 @@ class Enemy extends Spaceship {
 	 */
 	constructor(x, y, velX, color) {
 		super(x, y, velX, color);
-		this.image.src = "images/enemy-" + this.color + "-" + random(1, 5) + ".png";
+		this.image.src = "images/enemy-" + this.color + "-" + Utils.random(1, 5) + ".png";
 	}
 
 	/**
 	 * Enemy can shoot
 	 */
-	shoot() {
-		let laser = new Laser(this.x + this.image.width / 2, this.y + this.image.height, 2, "images/laser-" + this.color + ".png");
+	shoot = () => {
+		let laser = new Laser(this.x + this.image.width / 2, 
+							this.y + this.image.height, 
+							2, 
+							"images/laser-" + this.color + ".png");
 		laser.play();
 		enemiesLasers.push(laser);
 	}
@@ -108,13 +109,14 @@ class Player extends Spaceship {
 		super(x, y, velX, color);
 		this.fire = true;
 		this.nbMoves = 1;
-		this.image.src = "images/player-" + this.color + "-" + random(1, 3) + ".png";
+		this.alive = true;
+		this.image.src = "images/player-" + this.color + "-" + Utils.random(1, 3) + ".png";
 	}
 
 	/**
 	 * Check screen limits
 	 */
-	checkBounds() {
+	checkBounds = () => {
 		/* right */
 		if ((this.x + this.image.width / 2) >= width) {
 			this.x = -(this.x);
@@ -128,7 +130,7 @@ class Player extends Spaceship {
 	/**
 	 * Add controls to the player
 	 */
-	setControls() {
+	setControls = () => {
 		window.onkeydown = (e) => {
 			if (e.key === "ArrowLeft") {
 				this.x = -(this.x);
@@ -145,14 +147,17 @@ class Player extends Spaceship {
 	/**
 	 * Player can shoot
 	 */
-	shoot() {
-		if (this.fire) { 
-			let laser = new Laser(this.x + this.image.width / 2, this.y - this.image.height / 2, 10, "images/laser-" + this.color +".png");
+	shoot = () => {
+		if (this.fire) {
+			let laser = new Laser(this.x + this.image.width / 2, 
+								this.y - this.image.height / 2, 
+								10, 
+								"images/laser-" + this.color + ".png");
 			laser.play();
 			playerLasers.push(laser);
 			this.fire = false;
 			this.nbMoves++;
-		}  else {
+		} else {
 			setTimeout(() => {
 				this.fire = true;
 			}, 10);
@@ -162,7 +167,7 @@ class Player extends Spaceship {
 	/**
 	 * Reset the number of player moves
 	 */
-	resetMoves() {
+	resetMoves = () => {
 		this.nbMoves = 1;
 	}
 }
@@ -189,14 +194,14 @@ class Explosion {
 	/**
 	 * Draw explosion
 	 */
-	draw() {
+	draw = () => {
 		ctx.drawImage(this.image, this.x, this.y);
 	}
 
 	/**
 	 * Play explosion sound
 	 */
-	play() {
+	play = () => {
 		this.sound.play();
 	}
 }
@@ -226,7 +231,7 @@ class Laser {
 	/**
 	 * Check if bullet touch an enemy
 	 */
-	killEnemy() {
+	killEnemy = () => {
 
 		for (let i = 0; i < enemies.length; i++) {
 
@@ -249,16 +254,17 @@ class Laser {
 	 * Check if bullet touch player
 	 * @param {*} player player to kill
 	 */
-	killPlayer(player) {
+	killPlayer = (player) => {
 
 		let dx = this.x - player.x;
 		let dy = this.y - player.y;
 		let distance = Math.sqrt(dx * dx + dy * dy);
 
-		if (distance < this.image.height + player.image.height) {
+		if (distance < this.image.height + player.image.height / 2) {
 			let explosion = new Explosion(player.x, player.y);
 			explosion.draw();
 			explosion.play();
+			player.alive = false;
 			this.active = false;
 		}
 	}
@@ -266,25 +272,25 @@ class Laser {
 	/**
 	 * Draw a laser
 	 */
-	draw() {
+	draw = () => {
 		ctx.drawImage(this.image, this.x, this.y);
 	}
 
 	/**
 	 * Update laser position
 	 */
-	update(direction) {
+	update = (direction) => {
 		if (direction === "up") {
-			this.y -= this.velY; 
+			this.y -= this.velY;
 		} else {
-			this.y += this.velY; 
+			this.y += this.velY;
 		}
 	}
 
 	/**
 	 * Player laser sound
 	 */
-	play() {
+	play = () =>  {
 		this.sound.play();
 	}
 }
@@ -310,7 +316,7 @@ class Star {
 	/**
 	 * Put star on canvas
 	 */
-	put() {
+	put = () => {
 		ctx.beginPath();
 		ctx.arc(this.x, this.y, this.size, 0, 2 * Math.PI);
 		ctx.fillStyle = this.color;
@@ -319,21 +325,123 @@ class Star {
 }
 
 /**
- * Add nbEnemies in enemies array
- * @param {*} enemies array with enemies
- * @param {*} nbEnemies number of enemies
+ * Utils class used in script
  */
-const addEnemies = (enemies, nbEnemies) => {
-	
-	let startY = 20;
+class Utils {
 
-	for (let i = 0; i < nbEnemies; i++) {
-		enemies.push(new Enemy(random(50, innerWidth - 100), startY, random(1, 10), ENEMIES_COLORS[random(0, ENEMIES_COLORS.length)]));
-		if (enemies.length % 4 == 0) {
-			startY += 150;
+	/**
+	   * Get random between min and max
+	   * @param {*} min min available number
+	   * @param {*} max max available number
+	   */
+	static random = (min, max) => {
+		return Math.floor(Math.random() * (max - min)) + min;
+	}
+
+	/**
+	 * Add nbEnemies in enemies array
+	 * @param {*} enemies array with enemies
+	 * @param {*} nbEnemies number of enemies
+	 */
+	static addEnemies = (enemies, nbEnemies) => {
+
+		let startY = 20;
+
+		for (let i = 0; i < nbEnemies; i++) {
+			enemies.push(new Enemy(Utils.random(50, innerWidth - 100),
+				startY,
+				Utils.random(1, 10),
+				ENEMIES_COLORS[Utils.random(0, ENEMIES_COLORS.length)]));
+			if (enemies.length % 4 == 0) {
+				startY += 150;
+			}
+		}
+		return enemies;
+	}
+}
+
+class Game {
+
+	static play = () => {
+
+		ctx.fillStyle = 'black';
+		ctx.fillRect(0, 0, width, height);
+
+		for (let i = 0; i < 2; i++) {
+			new Star(Utils.random(1, width),
+				Utils.random(1, height),
+				Utils.random(1, 5)).put();
+		}
+
+		scoreText.innerHTML = "Score : " + score;
+
+		if (enemies.length <= NB_ENEMIES / 3) {
+			down = true;
+		}
+
+		/**
+		 * Animate enemies
+		 */
+		for (let i = 0; i < enemies.length; i++) {
+			enemies[i].draw();
+			enemies[i].update();
+
+			if (down) {
+				enemies[i].y += 150;
+			}
+
+			if (player.nbMoves === 5) {
+				let randomEnemy = Utils.random(0, enemies.length);
+				enemies[randomEnemy].shoot();
+				player.resetMoves();
+			}
+		}
+
+		if (down) {
+			down = false;
+			Utils.addEnemies(enemies, enemies.length * 2);
+		}
+
+		/**
+		 * Check if enemies laser touch player 
+		 */
+		for (let i = 0; i < enemiesLasers.length; i++) {
+			if (enemiesLasers[i].y > height || !enemiesLasers[i].active) {
+				enemiesLasers.splice(i, 1);
+			} else {
+				enemiesLasers[i].draw();
+				enemiesLasers[i].update("down");
+				enemiesLasers[i].killPlayer(player);
+			}
+		}
+
+		/** 
+		 * Check if lasers touch enemies
+		 */
+		for (let i = 0; i < playerLasers.length; i++) {
+			if (playerLasers[i].y < 0 || !playerLasers[i].active) {
+				playerLasers.splice(i, 1);
+			} else {
+				playerLasers[i].draw();
+				playerLasers[i].update("up");
+				playerLasers[i].killEnemy();
+			}
+		}
+
+		player.draw();
+		player.update();
+		player.checkBounds();
+
+		if (player.alive) {
+			requestAnimationFrame(this.play);
+		} else {
+			this.loose();
 		}
 	}
-	return enemies;
+
+	static loose = () => {
+		loose.textContent = "You loose ! ";
+	}
 }
 
 const NB_ENEMIES = 12;
@@ -345,80 +453,6 @@ let player = new Player(width / 2.2, height / 1.2, 5, "blue");
 let down = false;
 
 player.setControls();
-addEnemies(enemies, NB_ENEMIES);
+Utils.addEnemies(enemies, NB_ENEMIES);
 
-/**
- * Game loop
- */
-const loop = () => {
-
-	ctx.fillStyle = 'black';
-	ctx.fillRect(0, 0, width, height);
-
-	for (let i = 0; i < 2; i++) {
-		new Star(random(1, width), random(1, height), random(1, 5)).put();
-	}
-	
-	scoreText.innerHTML = "Score : " + score;
-
-	if (enemies.length <= NB_ENEMIES / 3) {
-		down = true;
-	}
-
-	/**
-	 * Animate enemies
-	 */
-	for (let i = 0; i < enemies.length; i++) {
-    	enemies[i].draw();
-		enemies[i].update();
-
-		if (down) {
-			enemies[i].y += 150;
-		}
-
-		if (player.nbMoves === 5) {
-			let randomEnemy = random(0, enemies.length);
-			enemies[randomEnemy].shoot();
-			player.resetMoves();
-		} 
-	}
-
-	if (down) {
-		down = false;
-		addEnemies(enemies, enemies.length * 2);
-	}
-
-	/**
-	 * Check if enemies laser touch player 
-	 */
-	for (let i = 0; i < enemiesLasers.length; i++) {
-		if (enemiesLasers[i].y > height || !enemiesLasers[i].active) {
-			enemiesLasers.splice(i, 1);
-		} else {
-			enemiesLasers[i].draw();
-			enemiesLasers[i].update("down");
-			enemiesLasers[i].killPlayer(player);
-		}
-	}
-
-	/** 
-	 * Check if lasers touch enemies
-	 */
-	for (let i = 0; i < playerLasers.length; i++) {
-		if (playerLasers[i].y < 0 || !playerLasers[i].active) {
-			playerLasers.splice(i, 1);
-		} else {
-			playerLasers[i].draw();
-			playerLasers[i].update("up");
-			playerLasers[i].killEnemy();
-		}
-	}
-
-	player.draw();
-	player.update();
-	player.checkBounds();
-
-  	requestAnimationFrame(loop);
-}
-
-loop();
+Game.play();

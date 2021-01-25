@@ -31,3 +31,12 @@ p {
   right: 5px;
   color: yellow;
 }
+
+#loose {
+  position: absolute;
+  font-size: 5em;
+  margin: 0;
+  top: 50%;
+  right: 40%;
+  color: red;
+}
