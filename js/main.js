@@ -1,3 +1,5 @@
+"use strict";
+
 const canvas = document.querySelector("canvas");
 const ctx = canvas.getContext("2d");
 const scoreText = document.querySelector("p");
@@ -53,7 +55,7 @@ class Spaceship {
 	shoot = (lasersArray) => {
 		let laser = new Laser(this.x + this.image.width, 
 							this.y, 
-							2, 
+							5, 
 							"images/laser-" + this.color + ".png");
 		laser.play();
 		lasersArray.push(laser);
@@ -127,7 +129,13 @@ class Player extends Spaceship {
 			} else if (e.key === "ArrowRight" && this.velX < 0) {
 				this.x *= -1;
 			} else if (e.key === ' ') {
-				this.shoot(playerLasers);
+				// if no laser, shoot
+				if (!playerLasers[playerLasers.length - 1]) {
+					this.shoot(playerLasers);
+				// disabled rapid fire
+				} else if (playerLasers[playerLasers.length - 1].y < height - height / 3) {
+					this.shoot(playerLasers);
+				}
 			}
 		};
 	}
@@ -145,6 +153,7 @@ class Player extends Spaceship {
 		if (distance < this.image.height / 2 + checkObject.image.height / 2) {
 			isHit = true;
 		}
+
 		return isHit;
 	}
 }
@@ -159,13 +168,14 @@ class Explosion {
 	 * Init a new explosion
 	 * @param {*} x x position
 	 * @param {*} y y position
+	 * @param {*} sound path of sound
 	 */
-	constructor(x, y) {
+	constructor(x, y, sound) {
 		this.x = x;
 		this.y = y;
 		this.image = new Image();
 		this.image.src = "images/blast.png";
-		this.sound = new Audio("sounds/explosion1.mp3");
+		this.sound = new Audio(sound);
 	}
 
 	/**
@@ -217,7 +227,7 @@ class Laser {
 			let distance = Math.sqrt(dx * dx + dy * dy);
 
 			if (distance < this.image.height + enemies[i].image.height) {
-				let explosion = new Explosion(enemies[i].x, enemies[i].y);
+				let explosion = new Explosion(enemies[i].x, enemies[i].y, "sounds/explosion.mp3");
 				explosion.draw();
 				explosion.play();
 				this.active = false;
@@ -238,7 +248,7 @@ class Laser {
 		let distance = Math.sqrt(dx * dx + dy * dy);
 
 		if (distance < this.image.height) {
-			let explosion = new Explosion(player.x, player.y);
+			let explosion = new Explosion(player.x, player.y, "sounds/explosion.mp3");
 			explosion.draw();
 			explosion.play();
 			player.alive = false;
@@ -302,43 +312,6 @@ class Star {
 }
 
 /**
- * Utils class used in script
- */
-class Utils {
-
-	/**
-	   * Get random between min and max
-	   * @param {*} min min available number
-	   * @param {*} max max available number
-	   */
-	static random = (min, max) => {
-		return Math.floor(Math.random() * (max - min)) + min;
-	}
-
-	/**
-	 * Add nbEnemies in enemies array
-	 * @param {*} enemies array with enemies
-	 * @param {*} nbEnemies number of enemies
-	 */
-	static addEnemies = (enemies, nbEnemies) => {
-
-		let startY = 20;
-
-		for (let i = 0; i < nbEnemies; i++) {
-			enemies.push(new Enemy(Utils.random(50, innerWidth - 100),
-									startY,
-									Utils.random(1, 10),
-									ENEMIES_COLORS[Utils.random(0, ENEMIES_COLORS.length)]));
-
-			if (enemies.length % 4 == 0) {
-				startY += 100;
-			}
-		}
-		return enemies;
-	}
-}
-
-/**
  * Mother class bonus
  * Give bonus to player
  */
@@ -390,7 +363,7 @@ class NuclearBomb extends Bonus {
 		// destroy all enemies
 		enemies = [];
 		allBonus.splice(bonusIndex, 1);
-		new Explosion(this.x, this.y).play();
+		new Explosion(this.x, this.y, "sounds/nuclear.mp3").play();
 		Utils.addEnemies(enemies, NB_ENEMIES);
 	}
 }
@@ -417,6 +390,44 @@ class DoublePoint extends Bonus {
 	apply(bonusIndex) {
 		score += 2;
 		allBonus.splice(bonusIndex, 1);
+	}
+}
+
+
+/**
+ * Utils class used in script
+ */
+class Utils {
+
+	/**
+	   * Get random between min and max
+	   * @param {*} min min available number
+	   * @param {*} max max available number
+	   */
+	static random = (min, max) => {
+		return Math.floor(Math.random() * (max - min)) + min;
+	}
+
+	/**
+	 * Add nbEnemies in enemies array
+	 * @param {*} enemies array with enemies
+	 * @param {*} nbEnemies number of enemies
+	 */
+	static addEnemies = (enemies, nbEnemies) => {
+
+		let startY = 20;
+
+		for (let i = 0; i < nbEnemies; i++) {
+			enemies.push(new Enemy(Utils.random(50, innerWidth - 100),
+									startY,
+									Utils.random(1, 10),
+									ENEMIES_COLORS[Utils.random(0, ENEMIES_COLORS.length)]));
+
+			if (enemies.length % 4 == 0) {
+				startY += 100;
+			}
+		}
+		return enemies;
 	}
 }
 
@@ -458,7 +469,7 @@ class Game {
 			// Check if player hit an enemy
 			if (player.hitObject(enemies[i])) {
 				player.alive = false;
-				let explosion = new Explosion(this.x, this.y);
+				let explosion = new Explosion(this.x, this.y, "sounds/explosion.mp3");
 				explosion.draw();
 				explosion.play();
 			}
@@ -480,6 +491,7 @@ class Game {
 			enemies.forEach(enemy => enemy.y += 150);
 		}
 
+		// Add enemies
 		if (enemies.length <= NB_ENEMIES / 3) {
 			Utils.addEnemies(enemies, NB_ENEMIES / 3);
 		}
@@ -507,7 +519,7 @@ class Game {
 		}
 
 		// Add nuclear bonus
-		if (randomBonus === RANDOM_NUMBER * 10 && score > 1) {
+		if (randomBonus > RANDOM_NUMBER * 10 && randomBonus <= RANDOM_NUMBER * 10 + 5 && score > 1) {
 			let nuclearBonus = new NuclearBomb(Utils.random(0, width), Utils.random(0, height / 3));
 			allBonus.push(nuclearBonus);
 		}
@@ -520,16 +532,15 @@ class Game {
 
 		// display bonus
 		for (let i = 0; i < allBonus.length; i++) {
-			if (allBonus[i].y > height) {
+			
+			// apply bonus
+			if (player.hitObject(allBonus[i])) {
+				allBonus[i].apply(i);
+			} else if (allBonus[i].y > height) {
 				allBonus.splice(i, 1);
 			} else {
 				allBonus[i].draw();
 				allBonus[i].update();
-			}
-
-			// apply bonus
-			if (player.hitObject(allBonus[i])) {
-				allBonus[i].apply(i);
 			}
 		}
 
