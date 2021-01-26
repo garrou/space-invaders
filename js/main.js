@@ -5,9 +5,7 @@ const width = canvas.width = window.innerWidth;
 const height = canvas.height = window.innerHeight;
 const loose = document.getElementById("loose");
 
-/**
- * Available enemies colors
- */
+// Available enemies colors
 const ENEMIES_COLORS = [
 	"green",
 	"red"
@@ -135,16 +133,16 @@ class Player extends Spaceship {
 	}
 
 	/**
-	 * Check if player spaceship hit an enemy spaceship
-	 * @param {*} enemySpaceship spaceship to check
+	 * Check if player spaceship hit an physical object
+	 * @param {*} checkObject object to check
 	 */
-	hitObject(enemySpaceship) {
-		let dx = this.x - enemySpaceship.x;
-		let dy = this.y - enemySpaceship.y;
+	hitObject(checkObject) {
+		let dx = this.x - checkObject.x;
+		let dy = this.y - checkObject.y;
 		let distance = Math.sqrt(dx * dx + dy * dy);
 		let isHit = false;
 
-		if (distance < this.image.height / 2 + enemySpaceship.image.height / 2) {
+		if (distance < this.image.height / 2 + checkObject.image.height / 2) {
 			isHit = true;
 		}
 		return isHit;
@@ -239,7 +237,7 @@ class Laser {
 		let dy = this.y - player.y;
 		let distance = Math.sqrt(dx * dx + dy * dy);
 
-		if (distance < this.image.height + player.image.height / 2) {
+		if (distance < this.image.height) {
 			let explosion = new Explosion(player.x, player.y);
 			explosion.draw();
 			explosion.play();
@@ -333,7 +331,7 @@ class Utils {
 									ENEMIES_COLORS[Utils.random(0, ENEMIES_COLORS.length)]));
 
 			if (enemies.length % 4 == 0) {
-				startY += 150;
+				startY += 100;
 			}
 		}
 		return enemies;
@@ -366,7 +364,7 @@ class Bonus {
 	 * Update bonus position
 	 */
 	update() {
-		this.y += 1;
+		this.y += 2;
 	}
 }
 
@@ -382,6 +380,44 @@ class NuclearBomb extends Bonus {
 		super(x, y);
 		this.image.src = "images/nuclear-bomb.png";
 	}
+
+	/**
+	 * Apply bonus power
+	 * @param {*} bonusIndex the index of the bonus
+	 */
+	apply(bonusIndex) {
+		score += enemies.length;
+		// destroy all enemies
+		enemies = [];
+		allBonus.splice(bonusIndex, 1);
+		new Explosion(this.x, this.y).play();
+		Utils.addEnemies(enemies, NB_ENEMIES);
+	}
+}
+
+/**
+ * Represent a bonus who add 2 points
+ */
+class DoublePoint extends Bonus {
+
+	/**
+	 * Init a double bonus
+	 * @param {*} x x position
+	 * @param {*} y y position
+	 */
+	constructor(x, y) {
+		super(x, y);
+		this.image.src = "images/2.png";
+	}
+	
+	/**
+	 * Apply bonus power
+	 * @param {*} bonusIndex the index of the bonus
+	 */
+	apply(bonusIndex) {
+		score += 2;
+		allBonus.splice(bonusIndex, 1);
+	}
 }
 
 /**
@@ -394,8 +430,14 @@ class Game {
 	 */
 	static play = () => {
 
-		let randBonus = Utils.random(0, 10000);
-		let randomValue = Utils.random(0, 500);
+		// Genenate a value to allow enemies to fire
+		let randomFire = Utils.random(0, 500);
+		
+		// Generate a value to allow enemies to down
+		let randomDown = Utils.random(0, 1000);
+
+		// Generate a number to generate a bonus
+		let randomBonus = Utils.random(0, 10000);
 
 		ctx.fillStyle = 'black';
 		ctx.fillRect(0, 0, width, height);
@@ -408,9 +450,7 @@ class Game {
 
 		scoreText.innerHTML = "Score : " + score;
 
-		/**
-		 * Animate enemies
-		 */
+		// Animate enemies
 		for (let i = 0; i < enemies.length; i++) {
 			enemies[i].draw();
 			enemies[i].update();
@@ -424,31 +464,27 @@ class Game {
 			}
 
 			// Enemies shoot
-			if (score > 0) {
-				if (randomValue >= 220 && randomValue <= 230) {
-					randomValue = Utils.random(0, enemies.length);
-					enemies[randomValue].shoot(enemiesLasers);
-				}
+			if (randomFire >= RANDOM_NUMBER - 10 && randomFire <= RANDOM_NUMBER && score > 1) {
+				randomFire = Utils.random(0, enemies.length);
+				enemies[randomFire].shoot(enemiesLasers);
 			}
+
+			// If an enemy is at bottom of screen
 			if (enemies[i].y + enemies[i].image.height >= height) {
 				player.alive = false;
 			}
 		}
 
 		// Enemies down
-		if (score > 0) {
-			if (randomValue == 457) {
-				enemies.forEach(enemy => enemy.y += 150);
-			}
+		if (randomDown === RANDOM_NUMBER && score > 1) {
+			enemies.forEach(enemy => enemy.y += 150);
 		}
 
 		if (enemies.length <= NB_ENEMIES / 3) {
 			Utils.addEnemies(enemies, NB_ENEMIES / 3);
 		}
 
-		/**
-		 * Check if enemies laser touch player 
-		 */
+		// Animate and draw lasers
 		for (let i = 0; i < enemiesLasers.length; i++) {
 			if (enemiesLasers[i].y > height || !enemiesLasers[i].active) {
 				enemiesLasers.splice(i, 1);
@@ -459,9 +495,7 @@ class Game {
 			}
 		}
 
-		/** 
-		 * Check if lasers touch enemies
-		 */
+		// Animate player lasers
 		for (let i = 0; i < playerLasers.length; i++) {
 			if (playerLasers[i].y < 0 || !playerLasers[i].active) {
 				playerLasers.splice(i, 1);
@@ -472,10 +506,16 @@ class Game {
 			}
 		}
 
-		// add bonus
-		if (randBonus === 9874) {
-			let bonus = new NuclearBomb(Utils.random(0, width), Utils.random(0, height / 3));
-			allBonus.push(bonus);
+		// Add nuclear bonus
+		if (randomBonus === RANDOM_NUMBER * 10 && score > 1) {
+			let nuclearBonus = new NuclearBomb(Utils.random(0, width), Utils.random(0, height / 3));
+			allBonus.push(nuclearBonus);
+		}
+
+		// Add double point bonus 
+		if (randomBonus >= RANDOM_NUMBER && randomBonus <= RANDOM_NUMBER + 10 && score > 1) {
+			let doubleBonus = new DoublePoint(Utils.random(0, width), Utils.random(0, height / 3));
+			allBonus.push(doubleBonus);
 		}
 
 		// display bonus
@@ -489,10 +529,7 @@ class Game {
 
 			// apply bonus
 			if (player.hitObject(allBonus[i])) {
-				score += enemies.length;
-				enemies = [];
-				allBonus.splice(i, 1);
-				Utils.addEnemies(enemies, NB_ENEMIES);
+				allBonus[i].apply(i);
 			}
 		}
 
@@ -515,15 +552,35 @@ class Game {
 	}
 }
 
+// Number of enemies at begin
 const NB_ENEMIES = 12;
+
+// Random number to allow enemies fire and bonus
+const RANDOM_NUMBER = 456;
+
+// Player score
 let score = 0;
+
+// Contains all enemies
 let enemies = [];
+
+// Contains player lasers
 let playerLasers = [];
+
+// Contains enemies lasers
 let enemiesLasers = [];
+
+// Contains all generated bonus
 let allBonus = [];
+
+// Init a new player
 let player = new Player(width / 2.2, height / 1.2, 5, "blue");
 
+// Add controls to player 
 player.setControls();
+
+// Add enemies in array
 Utils.addEnemies(enemies, NB_ENEMIES);
 
+// Launch game
 Game.play();
