@@ -1,11 +1,11 @@
 "use strict";
 
-const canvas = document.querySelector("canvas");
-const ctx = canvas.getContext("2d");
-const scoreText = document.querySelector("p");
-const width = canvas.width = window.innerWidth;
-const height = canvas.height = window.innerHeight;
-const loose = document.getElementById("loose");
+const CANVAS = document.querySelector("canvas");
+const CTX = CANVAS.getContext("2d");
+const SCORE_TEXT = document.querySelector("p");
+const WIDTH = CANVAS.width = window.innerWidth;
+const HEIGHT = CANVAS.height = window.innerHeight;
+const LOOSE = document.getElementById("loose");
 
 // Available enemies colors
 const ENEMIES_COLORS = [
@@ -38,7 +38,7 @@ class Spaceship {
 	 */
 	update = () => {
 		/* right */
-		if ((this.x + this.image.width) >= width) {
+		if ((this.x + this.image.width) >= WIDTH) {
 			this.velX *= -1;
 		}
 		/* left */
@@ -65,7 +65,7 @@ class Spaceship {
 	 * Draw on canvas
 	 */
 	draw = () => {
-		ctx.drawImage(this.image, this.x, this.y);
+		CTX.drawImage(this.image, this.x, this.y);
 	}
 }
 
@@ -110,7 +110,7 @@ class Player extends Spaceship {
 	 */
 	checkBounds = () => {
 		/* right */
-		if ((this.x + this.image.width / 2) >= width) {
+		if ((this.x + this.image.width / 2) >= WIDTH) {
 			this.x = -(this.x);
 		}
 		/* left */
@@ -133,7 +133,7 @@ class Player extends Spaceship {
 				if (!playerLasers[playerLasers.length - 1]) {
 					this.shoot(playerLasers);
 				// disabled rapid fire
-				} else if (playerLasers[playerLasers.length - 1].y < height - height / 3) {
+				} else if (playerLasers[playerLasers.length - 1].y < HEIGHT - HEIGHT / 3) {
 					this.shoot(playerLasers);
 				}
 			}
@@ -182,7 +182,7 @@ class Explosion {
 	 * Draw explosion
 	 */
 	draw = () => {
-		ctx.drawImage(this.image, this.x, this.y);
+		CTX.drawImage(this.image, this.x, this.y);
 	}
 
 	/**
@@ -260,7 +260,7 @@ class Laser {
 	 * Draw a laser
 	 */
 	draw = () => {
-		ctx.drawImage(this.image, this.x, this.y);
+		CTX.drawImage(this.image, this.x, this.y);
 	}
 
 	/**
@@ -304,10 +304,10 @@ class Star {
 	 * Put star on canvas
 	 */
 	put = () => {
-		ctx.beginPath();
-		ctx.arc(this.x, this.y, this.size, 0, 2 * Math.PI);
-		ctx.fillStyle = this.color;
-		ctx.fill();
+		CTX.beginPath();
+		CTX.arc(this.x, this.y, this.size, 0, 2 * Math.PI);
+		CTX.fillStyle = this.color;
+		CTX.fill();
 	}
 }
 
@@ -330,7 +330,7 @@ class Bonus {
 	 * Draw bonus
 	 */
 	draw() {
-		ctx.drawImage(this.image, this.x, this.y);
+		CTX.drawImage(this.image, this.x, this.y);
 	}
 
 	/** 
@@ -450,16 +450,16 @@ class Game {
 		// Generate a number to generate a bonus
 		let randomBonus = Utils.random(0, 10000);
 
-		ctx.fillStyle = 'black';
-		ctx.fillRect(0, 0, width, height);
+		CTX.fillStyle = 'black';
+		CTX.fillRect(0, 0, WIDTH, HEIGHT);
 
 		for (let i = 0; i < 2; i++) {
-			new Star(Utils.random(1, width),
-				Utils.random(1, height),
+			new Star(Utils.random(1, WIDTH),
+				Utils.random(1, HEIGHT),
 				Utils.random(1, 5)).put();
 		}
 
-		scoreText.innerHTML = "Score : " + score;
+		SCORE_TEXT.innerHTML = "Score : " + score;
 
 		// Animate enemies
 		for (let i = 0; i < enemies.length; i++) {
@@ -481,7 +481,7 @@ class Game {
 			}
 
 			// If an enemy is at bottom of screen
-			if (enemies[i].y + enemies[i].image.height >= height) {
+			if (enemies[i].y + enemies[i].image.height >= HEIGHT) {
 				player.alive = false;
 			}
 		}
@@ -498,7 +498,7 @@ class Game {
 
 		// Animate and draw lasers
 		for (let i = 0; i < enemiesLasers.length; i++) {
-			if (enemiesLasers[i].y > height || !enemiesLasers[i].active) {
+			if (enemiesLasers[i].y > HEIGHT || !enemiesLasers[i].active) {
 				enemiesLasers.splice(i, 1);
 			} else {
 				enemiesLasers[i].draw();
@@ -520,13 +520,13 @@ class Game {
 
 		// Add nuclear bonus
 		if (randomBonus > RANDOM_NUMBER * 10 && randomBonus <= RANDOM_NUMBER * 10 + 5 && score > 1) {
-			let nuclearBonus = new NuclearBomb(Utils.random(0, width), Utils.random(0, height / 3));
+			let nuclearBonus = new NuclearBomb(Utils.random(0, WIDTH), Utils.random(0, HEIGHT / 3));
 			allBonus.push(nuclearBonus);
 		}
 
 		// Add double point bonus 
 		if (randomBonus >= RANDOM_NUMBER && randomBonus <= RANDOM_NUMBER + 10 && score > 1) {
-			let doubleBonus = new DoublePoint(Utils.random(0, width), Utils.random(0, height / 3));
+			let doubleBonus = new DoublePoint(Utils.random(0, WIDTH), Utils.random(0, HEIGHT / 3));
 			allBonus.push(doubleBonus);
 		}
 
@@ -536,7 +536,7 @@ class Game {
 			// apply bonus
 			if (player.hitObject(allBonus[i])) {
 				allBonus[i].apply(i);
-			} else if (allBonus[i].y > height) {
+			} else if (allBonus[i].y > HEIGHT) {
 				allBonus.splice(i, 1);
 			} else {
 				allBonus[i].draw();
@@ -559,7 +559,7 @@ class Game {
 	 * When player loose
 	 */
 	static loose = () => {
-		loose.textContent = "You loose ! ";
+		LOOSE.textContent = "You loose ! ";
 	}
 }
 
@@ -585,7 +585,7 @@ let enemiesLasers = [];
 let allBonus = [];
 
 // Init a new player
-let player = new Player(width / 2.2, height / 1.2, 5, "blue");
+let player = new Player(WIDTH / 2.2, HEIGHT / 1.2, 5, "blue");
 
 // Add controls to player 
 player.setControls();
