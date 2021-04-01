@@ -56,7 +56,7 @@ class Spaceship {
 		let laser = new Laser(this.x + this.image.width, 
 							this.y, 
 							5, 
-							"images/laser-" + this.color + ".png");
+							"assets/laser-" + this.color + ".png");
 		laser.play();
 		lasersArray.push(laser);
 	}
@@ -83,7 +83,7 @@ class Enemy extends Spaceship {
 	 */
 	constructor(x, y, velX, color) {
 		super(x, y, velX, color);
-		this.image.src = "images/enemy-" + this.color + "-" + Utils.random(1, 5) + ".png";
+		this.image.src = "assets/enemy-" + this.color + "-" + Utils.random(1, 5) + ".png";
 	}
 }
 
@@ -102,7 +102,7 @@ class Player extends Spaceship {
 	constructor(x, y, velX, color) {
 		super(x, y, velX, color);
 		this.alive = true;
-		this.image.src = "images/player-" + this.color + "-" + Utils.random(1, 3) + ".png";
+		this.image.src = "assets/player-" + this.color + "-" + Utils.random(1, 3) + ".png";
 	}
 
 	/**
@@ -174,7 +174,7 @@ class Explosion {
 		this.x = x;
 		this.y = y;
 		this.image = new Image();
-		this.image.src = "images/blast.png";
+		this.image.src = "assets/blast.png";
 		this.sound = new Audio(sound);
 	}
 
@@ -351,7 +351,7 @@ class NuclearBomb extends Bonus {
 	 */
 	constructor(x, y) {
 		super(x, y);
-		this.image.src = "images/nuclear-bomb.png";
+		this.image.src = "assets/nuclear-bomb.png";
 	}
 
 	/**
@@ -380,7 +380,7 @@ class DoublePoint extends Bonus {
 	 */
 	constructor(x, y) {
 		super(x, y);
-		this.image.src = "images/2.png";
+		this.image.src = "assets/2.png";
 	}
 	
 	/**
